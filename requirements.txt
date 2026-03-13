@@ -1,0 +1,13 @@
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.14
+pycaw>=20230407
+comtypes>=1.2.0
+pyautogui>=0.9.54
+keyboard>=0.13.5
+pystray>=0.19.5
+Pillow>=10.0.0
+spotipy>=2.23.0
+customtkinter>=5.2.0
+vosk>=0.3.45
+faster-whisper>=1.0.0
+pyinstaller>=6.0.0

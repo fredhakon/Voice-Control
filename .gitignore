@@ -1,0 +1,72 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+installer/
+*.spec.bak
+
+# IDE settings
+.vscode/
+.idea/
+
+# User-specific config (contains personal commands - DO NOT COMMIT)
+config.json
+
+# Spotify cache (contains OAuth tokens - NEVER COMMIT)
+.spotify_cache
+
+# Voice/user profiles
+profiles/
+profiles/*.json
+*.profile.json
+
+# Vosk model (large binary, download separately)
+vosk-model/
+
+# Keep the default config template
+!config.default.json
+
+# PyInstaller
+*.manifest
+*.spec.bak
+
+# PyInstaller build artifacts
+*.toc
+*.pyz
+*.pkg
+base_library.zip
+warn-*.txt
+xref-*.html
+
+# Test files
+test_*.py
+
+# Icon generation script (not needed for distribution)
+create_icon.py
+
+# Temp/test JSON files
+gsdg.json
+Yes.json
+
+# VS Code tasks (should be in .vscode/)
+tasks.json
+
+# Old backup/unused files
+main_original_tkinter.py
+spotify_control_backup.py
+spotify_controller.py
+
+# Logs
+*.log
+
+# Changelog (local development notes - not for public repo)
+CHANGELOG.md

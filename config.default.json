@@ -1,0 +1,22 @@
+{
+    "commands": {},
+    "settings": {
+        "toggle_shortcut": "ctrl+shift+v",
+        "energy_threshold": 4000,
+        "recognition_engine": "vosk"
+    },
+    "spotify": {
+        "client_id": "",
+        "client_secret": ""
+    },
+    "builtin_phrases": {
+        "volume_up": ["volume up", "increase volume", "louder"],
+        "volume_down": ["volume down", "decrease volume", "quieter"],
+        "mute": ["mute", "mute volume", "silence"],
+        "unmute": ["unmute", "unmute volume"],
+        "set_volume": ["set volume"],
+        "play_pause": ["play", "pause", "play pause"],
+        "next_track": ["next", "next track", "skip"],
+        "previous_track": ["previous", "previous track", "go back"]
+    }
+}
