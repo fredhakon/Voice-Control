@@ -1469,6 +1469,7 @@ class AddCommandDialog(ctk.CTkToplevel):
             ("Minimize", "minimize"),
             ("Maximize", "maximize"),
             ("Restore", "restore"),
+            ("Focus", "focus"),
             ("Close", "close"),
             ("Close All (same app)", "close_all_app"),
             ("Close ALL (everything)", "close_all_windows"),
@@ -1854,7 +1855,7 @@ class AddCommandDialog(ctk.CTkToplevel):
                     ("Snap Top-Left", "snap_top_left"), ("Snap Top-Right", "snap_top_right"),
                     ("Snap Bottom-Left", "snap_bottom_left"), ("Snap Bottom-Right", "snap_bottom_right"),
                     ("Minimize", "minimize"), ("Maximize", "maximize"),
-                    ("Restore", "restore"), ("Close", "close"),
+                    ("Restore", "restore"), ("Focus", "focus"), ("Close", "close"),
                 ]
                 
                 for i, (text, value) in enumerate(actions):
@@ -2142,7 +2143,7 @@ class AddCommandDialog(ctk.CTkToplevel):
                     "snap_top_left": "Snap Top-Left", "snap_top_right": "Snap Top-Right",
                     "snap_bottom_left": "Snap Bottom-Left", "snap_bottom_right": "Snap Bottom-Right",
                     "minimize": "Minimize", "maximize": "Maximize",
-                    "restore": "Restore", "close": "Close"
+                    "restore": "Restore", "focus": "Focus", "close": "Close"
                 }
                 action_name = action_names.get(action, action)
                 

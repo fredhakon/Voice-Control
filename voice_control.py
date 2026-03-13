@@ -1213,6 +1213,9 @@ class CommandManager:
             user32.ShowWindow(hwnd, SW_MAXIMIZE)
         elif action == "restore":
             user32.ShowWindow(hwnd, SW_RESTORE)
+        elif action == "focus":
+            user32.ShowWindow(hwnd, SW_RESTORE)
+            user32.SetForegroundWindow(hwnd)
         elif action == "close":
             WM_CLOSE = 0x0010
             user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
