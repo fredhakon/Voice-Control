@@ -1,6 +1,6 @@
 # Voice Control Platform
 
-A Windows voice control application built with Python and CustomTkinter that allows hands-free PC control through voice commands. Supports multiple speech recognition engines, Spotify integration, custom macros, window management, and user profiles.
+A Windows voice control application built with Python and CustomTkinter that allows hands-free PC control through voice commands. It also works excellently with games as you can create advanced macros available at your tounge. Supports multiple speech recognition engines, Spotify integration, custom macros, window management, and user profiles.
 
 ## Features
 
