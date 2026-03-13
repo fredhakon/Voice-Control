@@ -88,7 +88,7 @@ A Windows voice control application built with Python and CustomTkinter that all
 
 1. Clone the repository:
    ```powershell
-   git clone https://github.com/YOUR_USERNAME/voice-control.git
+   git clone https://github.com/fredhakon/voice-control.git
    cd voice-control
    ```
 
