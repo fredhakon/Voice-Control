@@ -43,6 +43,7 @@ vosk-model/
 *.toc
 *.pyz
 *.pkg
+*.exe
 base_library.zip
 warn-*.txt
 xref-*.html
