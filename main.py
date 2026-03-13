@@ -3432,7 +3432,7 @@ class VoiceControlApp(ctk.CTk):
             return
         
         for cmd_id, cmd_data in self.command_manager.commands.items():
-            card = ctk.CTkFrame(self.commands_frame, corner_radius=10, height=60)
+            card = ctk.CTkFrame(self.commands_frame, corner_radius=10, height=70)
             card.pack(fill="x", pady=(0, 8))
             card.pack_propagate(False)
             
@@ -3444,17 +3444,66 @@ class VoiceControlApp(ctk.CTk):
                 if len(cmd_data.get("phrases", [])) > 2:
                     phrases += "..."
                 cmd_type = cmd_data.get("type", "open_file")
-                icon = "📁" if cmd_type == "open_file" else "⌨️"
+                cmd_action_data = cmd_data.get("data")
+                
+                type_labels = {
+                    "open_file": "Open File/App",
+                    "open_url": "Open Website",
+                    "macro": "Keyboard Macro",
+                    "chain": "Chain Action",
+                    "window_action": "Window Action",
+                }
+                type_label = type_labels.get(cmd_type, cmd_type)
+                
+                # Add detail for window actions
+                if cmd_type == "window_action" and cmd_action_data:
+                    action_names = {
+                        "minimize": "Minimize", "maximize": "Maximize",
+                        "restore": "Restore", "focus": "Focus", "close": "Close",
+                        "close_all_app": "Close All (App)", "close_all_windows": "Close All",
+                        "snap_left": "Snap Left", "snap_right": "Snap Right",
+                        "snap_top_left": "Snap Top-Left", "snap_top_right": "Snap Top-Right",
+                        "snap_bottom_left": "Snap Bottom-Left", "snap_bottom_right": "Snap Bottom-Right",
+                    }
+                    if isinstance(cmd_action_data, dict):
+                        action = cmd_action_data.get("action", "")
+                        target = cmd_action_data.get("target", "focused")
+                        target_name = cmd_action_data.get("app", "") or cmd_action_data.get("title", "")
+                    else:
+                        action = str(cmd_action_data)
+                        target = "focused"
+                        target_name = ""
+                    action_name = action_names.get(action, action)
+                    if target_name:
+                        type_label = f"Window Action > {action_name} > {target_name}"
+                    else:
+                        type_label = f"Window Action > {action_name}"
+                elif cmd_type == "open_file" and cmd_action_data:
+                    # Show the filename/app name
+                    display_path = os.path.basename(str(cmd_action_data))
+                    type_label = f"Open File/App > {display_path}"
+                elif cmd_type == "open_url" and cmd_action_data:
+                    # Show the URL (trimmed)
+                    url_display = str(cmd_action_data).replace("https://", "").replace("http://", "")
+                    if len(url_display) > 40:
+                        url_display = url_display[:37] + "..."
+                    type_label = f"Open Website > {url_display}"
+                elif cmd_type == "chain" and isinstance(cmd_action_data, list):
+                    type_label = f"Chain Action > {len(cmd_action_data)} step{'s' if len(cmd_action_data) != 1 else ''}"
             else:
                 phrases = cmd_id
-                icon = "📁"
+                type_label = "Open File/App"
             
             left = ctk.CTkFrame(inner, fg_color="transparent")
             left.pack(side="left", fill="y")
             
-            label = ctk.CTkLabel(left, text=f"{icon}  {phrases}", font=ctk.CTkFont(size=13, weight="bold"),
+            label = ctk.CTkLabel(left, text=phrases, font=ctk.CTkFont(size=13, weight="bold"),
                          anchor="w")
             label.pack(anchor="w")
+            
+            sub_label = ctk.CTkLabel(left, text=type_label, font=ctk.CTkFont(size=11),
+                         text_color="gray", anchor="w")
+            sub_label.pack(anchor="w")
             
             # Store cmd_id for selection
             card.cmd_id = cmd_id
@@ -3465,6 +3514,7 @@ class VoiceControlApp(ctk.CTk):
             inner.bind("<Button-1>", select_handler)
             left.bind("<Button-1>", select_handler)
             label.bind("<Button-1>", select_handler)
+            sub_label.bind("<Button-1>", select_handler)
             
         self.selected_command = None
     
