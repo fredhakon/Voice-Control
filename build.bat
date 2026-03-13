@@ -26,7 +26,7 @@ if exist "config.json" (
 REM Build the executable
 echo.
 echo Building executable...
-pyinstaller VoiceControl.spec --clean
+.venv\Scripts\python.exe -m PyInstaller VoiceControl.spec --clean
 
 REM Restore sensitive files
 echo Restoring user files...
