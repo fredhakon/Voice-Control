@@ -735,6 +735,8 @@ class AddCommandDialog(ctk.CTkToplevel):
         
         ctk.CTkRadioButton(type_frame1, text="Open File/App", variable=self.command_type, 
                            value="open_file", command=self._on_type_changed).pack(side="left", padx=(0, 20))
+        ctk.CTkRadioButton(type_frame1, text="Open Folder", variable=self.command_type,
+                           value="open_folder", command=self._on_type_changed).pack(side="left", padx=(0, 20))
         ctk.CTkRadioButton(type_frame1, text="Open Website", variable=self.command_type,
                            value="open_url", command=self._on_type_changed).pack(side="left", padx=(0, 20))
         ctk.CTkRadioButton(type_frame1, text="Keyboard Macro", variable=self.command_type,
@@ -1480,6 +1482,8 @@ class AddCommandDialog(ctk.CTkToplevel):
         cmd_type = self.command_type.get()
         if cmd_type == "open_file":
             self._create_open_file_content()
+        elif cmd_type == "open_folder":
+            self._create_open_folder_content()
         elif cmd_type == "open_url":
             self._create_open_url_content()
         elif cmd_type == "window_action":
@@ -1489,6 +1493,19 @@ class AddCommandDialog(ctk.CTkToplevel):
         else:
             self._create_macro_content()
     
+    def _create_open_folder_content(self) -> None:
+        for w in self.content_frame.winfo_children():
+            w.destroy()
+        
+        ctk.CTkLabel(self.content_frame, text="Folder Path").pack(anchor="w", pady=(0, 8))
+        
+        path_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        path_frame.pack(fill="x")
+        
+        self.folder_var = ctk.StringVar()
+        ctk.CTkEntry(path_frame, textvariable=self.folder_var, width=320).pack(side="left")
+        ctk.CTkButton(path_frame, text="Browse", command=self._browse_folder, width=100).pack(side="left", padx=(10, 0))
+
     def _create_open_url_content(self) -> None:
         for w in self.content_frame.winfo_children():
             w.destroy()
@@ -1828,6 +1845,7 @@ class AddCommandDialog(ctk.CTkToplevel):
         
         action_types = [
             ("Open File/App", "open_file"),
+            ("Open Folder", "open_folder"),
             ("Open Website", "open_url"),
             ("Window Action", "window_action"),
             ("Macro", "macro"),
@@ -1864,6 +1882,7 @@ class AddCommandDialog(ctk.CTkToplevel):
         
         _dialog_sizes = {
             "open_file": (560, 220),
+            "open_folder": (560, 220),
             "open_url":  (560, 210),
             "window_action": (560, 490),
             "macro": (560, 710),
@@ -1889,6 +1908,20 @@ class AddCommandDialog(ctk.CTkToplevel):
                         file_path_var.set(filepath)
                 
                 ctk.CTkButton(path_frame, text="Browse", command=browse, width=80).pack(side="left", padx=(10, 0))
+            
+            elif action_type == "open_folder":
+                ctk.CTkLabel(content_frame, text="Folder Path:").pack(anchor="w", pady=(0, 5))
+                folder_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+                folder_frame.pack(fill="x")
+                ctk.CTkEntry(folder_frame, textvariable=file_path_var, width=280).pack(side="left")
+                
+                def browse_folder():
+                    from tkinter import filedialog
+                    folder = filedialog.askdirectory()
+                    if folder:
+                        file_path_var.set(folder)
+                
+                ctk.CTkButton(folder_frame, text="Browse", command=browse_folder, width=80).pack(side="left", padx=(10, 0))
             
             elif action_type == "open_url":
                 ctk.CTkLabel(content_frame, text="Website URL:").pack(anchor="w", pady=(0, 5))
@@ -2170,7 +2203,7 @@ class AddCommandDialog(ctk.CTkToplevel):
             action_type = edit_data.get("type", "open_file")
             data = edit_data.get("data", {})
             
-            if action_type == "open_file":
+            if action_type in ("open_file", "open_folder"):
                 file_path_var.set(data if isinstance(data, str) else "")
             elif action_type == "open_url":
                 url_var.set(data if isinstance(data, str) else "")
@@ -2205,6 +2238,14 @@ class AddCommandDialog(ctk.CTkToplevel):
                     return
                 data = path
                 display = f"📂 Open: {os.path.basename(path)}"
+            
+            elif action_type == "open_folder":
+                path = file_path_var.get().strip()
+                if not path:
+                    CTkMessagebox.show(dialog, "Warning", "Please enter a folder path.", "warning")
+                    return
+                data = path
+                display = f"📁 Open: {os.path.basename(path) or path}"
             
             elif action_type == "open_url":
                 url = url_var.get().strip()
@@ -2513,6 +2554,12 @@ class AddCommandDialog(ctk.CTkToplevel):
         filepath = filedialog.askopenfilename()
         if filepath:
             self.path_var.set(filepath)
+
+    def _browse_folder(self) -> None:
+        from tkinter import filedialog
+        folder = filedialog.askdirectory()
+        if folder:
+            self.folder_var.set(folder)
     
     def _add_macro_step(self) -> None:
         dialog = ctk.CTkToplevel(self)
@@ -2568,6 +2615,8 @@ class AddCommandDialog(ctk.CTkToplevel):
             
             if cmd_type == "open_file":
                 self.path_var.set(cmd.get("data", ""))
+            elif cmd_type == "open_folder":
+                self.folder_var.set(cmd.get("data", ""))
             elif cmd_type == "open_url":
                 self.url_var.set(cmd.get("data", ""))
             elif cmd_type == "window_action":
@@ -2622,6 +2671,12 @@ class AddCommandDialog(ctk.CTkToplevel):
             path = self.path_var.get().strip()
             if not path:
                 CTkMessagebox.show(self, "Warning", "Please select a file.", "warning")
+                return
+            action_data = path
+        elif cmd_type == "open_folder":
+            path = self.folder_var.get().strip()
+            if not path:
+                CTkMessagebox.show(self, "Warning", "Please select a folder.", "warning")
                 return
             action_data = path
         elif cmd_type == "open_url":
@@ -3560,6 +3615,7 @@ class VoiceControlApp(ctk.CTk):
                 
                 type_labels = {
                     "open_file": "Open File/App",
+                    "open_folder": "Open Folder",
                     "open_url": "Open Website",
                     "macro": "Keyboard Macro",
                     "chain": "Chain Action",
@@ -3594,6 +3650,11 @@ class VoiceControlApp(ctk.CTk):
                     # Show the filename/app name
                     display_path = os.path.basename(str(cmd_action_data))
                     type_label = f"Open File/App > {display_path}"
+                elif cmd_type == "open_folder" and cmd_action_data:
+                    display_path = str(cmd_action_data)
+                    if len(display_path) > 40:
+                        display_path = "..." + display_path[-37:]
+                    type_label = f"Open Folder > {display_path}"
                 elif cmd_type == "open_url" and cmd_action_data:
                     # Show the URL (trimmed)
                     url_display = str(cmd_action_data).replace("https://", "").replace("http://", "")

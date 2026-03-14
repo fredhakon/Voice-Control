@@ -1176,7 +1176,7 @@ class CommandManager:
             action_data = cmd_data.get("data")
             
             try:
-                if action_type == "open_file":
+                if action_type in ("open_file", "open_folder"):
                     os.startfile(action_data)
                     return True, f"Opened: {matched_custom_phrase}"
                 elif action_type == "open_url":
@@ -1499,7 +1499,7 @@ class CommandManager:
                     continue
                 
                 # Execute the action
-                if action_type == "open_file":
+                if action_type in ("open_file", "open_folder"):
                     os.startfile(action_data)
                 elif action_type == "open_url":
                     import webbrowser
