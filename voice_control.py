@@ -41,21 +41,47 @@ except ImportError:
     SpotifyController = None
 
 
+# Word-to-number mapping for spoken volume commands
+_WORD_NUMBERS = {
+    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
+    "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
+    "eighty": 80, "ninety": 90, "hundred": 100,
+}
+
+def _parse_spoken_number(text: str) -> Optional[int]:
+    """Parse a number from text, supporting both digits and spoken words.
+    Handles: '50', 'fifty', 'twenty five', 'twenty-five'."""
+    text = text.strip().lower().replace("-", " ")
+    if text.isdigit():
+        return int(text)
+    parts = text.split()
+    total = 0
+    found = False
+    for part in parts:
+        if part.isdigit():
+            total += int(part)
+            found = True
+        elif part in _WORD_NUMBERS:
+            total += _WORD_NUMBERS[part]
+            found = True
+    return total if found else None
+
+
 class VolumeController:
     """Handles system volume control using pycaw."""
     
     def __init__(self, device_id: Optional[str] = None):
         self._device_id = device_id
-        self._com_initialized = False
     
     def _ensure_com_initialized(self) -> None:
         """Ensure COM is initialized for the current thread."""
-        if not self._com_initialized:
-            try:
-                CoInitialize()
-                self._com_initialized = True
-            except Exception:
-                pass  # Already initialized
+        try:
+            CoInitialize()
+        except Exception:
+            pass  # Already initialized on this thread
     
     def set_device(self, device_id: Optional[str]) -> None:
         """Set the audio output device by ID."""
@@ -1016,8 +1042,9 @@ class CommandManager:
                 volume_str = text[len(prefix):].strip()
                 # Handle "percent" suffix
                 volume_str = volume_str.replace("percent", "").replace("%", "").strip()
-                if volume_str.isdigit():
-                    volume = int(volume_str)
+                volume = _parse_spoken_number(volume_str)
+                if volume is not None:
+                    volume = max(0, min(100, volume))
                     return self.spotify.set_volume(volume)
         
         # What's playing
@@ -1073,13 +1100,20 @@ class CommandManager:
         if self.is_command_enabled("set_volume"):
             for phrase in self.builtin_phrases.get("set_volume", ["set volume"]):
                 if phrase in text:
-                    # Extract number from text
-                    words = text.split()
-                    for word in words:
-                        if word.isdigit():
-                            level = int(word)
-                            self._handle_set_volume(level)
-                            return True, f"Volume set to {level}%"
+                    # Extract number from text (after the matched phrase)
+                    remainder = text[text.index(phrase) + len(phrase):].strip()
+                    level = _parse_spoken_number(remainder)
+                    if level is None:
+                        # Try finding a number anywhere in the text
+                        words = text.split()
+                        for word in words:
+                            level = _parse_spoken_number(word)
+                            if level is not None:
+                                break
+                    if level is not None:
+                        level = max(0, min(100, level))
+                        self._handle_set_volume(level)
+                        return True, f"Volume set to {level}%"
                     return False, "Please specify a volume level (0-100)"
         
         # Check built-in commands - find the longest matching phrase first

@@ -105,6 +105,7 @@ class SpotifyController:
         "user-read-currently-playing",
         "playlist-read-private",
         "playlist-read-collaborative",
+        "playlist-modify-private",
         "user-library-read",
     ]
     
@@ -340,6 +341,10 @@ class SpotifyController:
                 cache_path.unlink()
             except IOError:
                 pass
+    
+    def clear_credentials(self) -> None:
+        """Clear stored Spotify credentials."""
+        self._credentials = {"client_id": "", "client_secret": ""}
     
     def get_credentials(self) -> tuple[str, str]:
         """Get stored credentials (client_id, client_secret)."""
@@ -907,12 +912,16 @@ class SpotifyController:
                 remaining_min = remaining_sec // 60
                 remaining_sec = remaining_sec % 60
                 
+                # Get Spotify URL for link-back
+                track_url = track.get("external_urls", {}).get("spotify", "")
+                
                 return {
                     "name": track.get("name", "Unknown"),
                     "artist": track["artists"][0]["name"] if track.get("artists") else "Unknown",
                     "album": album.get("name", "Unknown"),
                     "is_playing": current.get("is_playing", False),
                     "album_art_url": album_art_url,
+                    "track_url": track_url,
                     "progress_ms": progress_ms,
                     "duration_ms": duration_ms,
                     "remaining": f"{remaining_min}:{remaining_sec:02d}",

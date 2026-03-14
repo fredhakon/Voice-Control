@@ -13,6 +13,7 @@ import sys
 import tkinter as tk
 import threading
 import io
+import webbrowser
 
 # For album art loading
 try:
@@ -444,6 +445,10 @@ class SettingsDialog(ctk.CTkToplevel):
             CTkMessagebox.show(self, "Warning", "Please enter both Client ID and Client Secret.", "warning")
             return
         
+        # Show EULA/Privacy acceptance dialog before connecting
+        if not self._show_spotify_eula_dialog():
+            return
+        
         def do_connect():
             success, message = self.command_manager.spotify.authenticate(client_id, client_secret)
             def update_ui():
@@ -458,11 +463,94 @@ class SettingsDialog(ctk.CTkToplevel):
         import threading
         threading.Thread(target=do_connect, daemon=True).start()
     
+    def _show_spotify_eula_dialog(self) -> bool:
+        """Show EULA/Privacy acceptance dialog. Returns True if accepted, False if declined."""
+        accepted = {"value": False}
+        
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Terms & Privacy Policy")
+        dialog.geometry("520x480")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        set_window_icon(dialog)
+        
+        frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=25, pady=20)
+        
+        ctk.CTkLabel(frame, text="Terms & Privacy Policy", 
+                     font=ctk.CTkFont(size=18, weight="bold")).pack(anchor="w", pady=(0, 10))
+        
+        ctk.CTkLabel(frame, text="Please read and accept before connecting to Spotify:",
+                     text_color="gray").pack(anchor="w", pady=(0, 10))
+        
+        text = ctk.CTkTextbox(frame, height=280, font=ctk.CTkFont(size=12))
+        text.pack(fill="both", expand=True, pady=(0, 15))
+        
+        summary = (
+            "END USER LICENSE AGREEMENT (Summary)\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "• This software is provided \"as is\" without warranty.\n"
+            "• Spotify features are subject to Spotify's Terms of Use.\n"
+            "• Spotify is a third-party beneficiary of this agreement.\n"
+            "• You may not reverse-engineer or create derivative works\n"
+            "  of the Spotify Platform, Service, or Content.\n"
+            "• No warranties are made on behalf of Spotify.\n\n"
+            "PRIVACY POLICY (Summary)\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "By connecting to Spotify, this app will access:\n\n"
+            "• Your current playback state (track, artist, album art)\n"
+            "• Your playlists and liked songs\n"
+            "• Playback control (play, pause, skip, search)\n\n"
+            "Data handling:\n\n"
+            "• Spotify OAuth tokens are stored locally on your device.\n"
+            "• Your Spotify credentials (Client ID/Secret) are stored\n"
+            "  locally and never sent to us or any third party.\n"
+            "• No personal data is sold, shared, or sent to external\n"
+            "  servers (except Spotify's API for playback features).\n"
+            "• You can disconnect and delete all Spotify data at any time.\n\n"
+            "Full documents: See EULA.md and PRIVACY.md in the app folder."
+        )
+        text.insert("1.0", summary)
+        text.configure(state="disabled")
+        
+        btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        def on_decline():
+            accepted["value"] = False
+            dialog.destroy()
+        
+        def on_accept():
+            accepted["value"] = True
+            dialog.destroy()
+        
+        ctk.CTkButton(btn_frame, text="Decline", command=on_decline, width=100,
+                      fg_color="transparent", border_width=1, text_color="gray").pack(side="left")
+        ctk.CTkButton(btn_frame, text="I Accept", command=on_accept, width=100).pack(side="right")
+        
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() - 520) // 2
+        y = self.winfo_y() + (self.winfo_height() - 480) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        dialog.wait_window()
+        return accepted["value"]
+    
     def _disconnect_spotify(self) -> None:
         if self.command_manager.spotify:
             self.command_manager.spotify.disconnect()
+            # Clear credentials from UI
+            self.spotify_client_id_var.set("")
+            self.spotify_client_secret_var.set("")
+            # Clear credentials from config
+            self.command_manager.spotify.clear_credentials()
+            config = self.command_manager._load_full_config()
+            config["spotify"] = {"client_id": "", "client_secret": ""}
+            self.command_manager._save_config(config)
             self._update_spotify_status()
-            CTkMessagebox.show(self, "Disconnected", "Disconnected from Spotify.", "info")
+            CTkMessagebox.show(self, "Disconnected", "Spotify account unlinked. All tokens and credentials have been removed.", "info")
     
     def _show_spotify_commands(self) -> None:
         dialog = ctk.CTkToplevel(self)
@@ -2800,7 +2888,7 @@ class CommandCenterDialog(ctk.CTkToplevel):
     CATEGORIES = {
         "volume": {
             "name": "🔊 Volume Control",
-            "commands": ["volume_up", "volume_down", "mute", "unmute"]
+            "commands": ["set_volume", "volume_up", "volume_down", "mute", "unmute", "toggle_mute"]
         },
         "media": {
             "name": "🎵 Media Keys",
@@ -3345,6 +3433,22 @@ class VoiceControlApp(ctk.CTk):
             admin_warning.pack(side="bottom", pady=(0, 5))
             admin_warning.bind("<Button-1>", lambda e: self._show_admin_info())
         
+        # Legal links at bottom of sidebar
+        legal_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        legal_frame.pack(side="bottom", fill="x", padx=20, pady=(0, 5))
+        
+        eula_link = ctk.CTkLabel(legal_frame, text="EULA", font=ctk.CTkFont(size=10),
+                                  text_color="gray", cursor="hand2")
+        eula_link.pack(side="left")
+        eula_link.bind("<Button-1>", lambda e: self._open_legal_doc("EULA.md"))
+        
+        ctk.CTkLabel(legal_frame, text=" · ", font=ctk.CTkFont(size=10), text_color="gray").pack(side="left")
+        
+        privacy_link = ctk.CTkLabel(legal_frame, text="Privacy", font=ctk.CTkFont(size=10),
+                                     text_color="gray", cursor="hand2")
+        privacy_link.pack(side="left")
+        privacy_link.bind("<Button-1>", lambda e: self._open_legal_doc("PRIVACY.md"))
+        
         # Theme switch at bottom
         theme_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         theme_frame.pack(side="bottom", fill="x", padx=20, pady=15)
@@ -3417,6 +3521,14 @@ class VoiceControlApp(ctk.CTk):
             "Right-click the app and select 'Run as administrator'.",
             "info"
         )
+    
+    def _open_legal_doc(self, filename: str) -> None:
+        """Open a legal document (EULA or Privacy Policy)."""
+        doc_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+        if os.path.exists(doc_path):
+            os.startfile(doc_path)
+        else:
+            CTkMessagebox.show(self, "Not Found", f"Could not find {filename}.", "warning")
     
     def _refresh_commands(self) -> None:
         for widget in self.commands_frame.winfo_children():
@@ -3609,6 +3721,14 @@ class VoiceControlApp(ctk.CTk):
             try:
                 success, message = self.command_manager.execute_command(text)
                 self.after(0, lambda: self._log(f"{'✅' if success else '❌'} {message}"))
+                # Brief cooldown after successful commands to prevent
+                # the recognizer from picking up audio playback or
+                # residual speech and triggering a follow-up command
+                # (e.g. "play X" starts music, then "play" is heard
+                # again and toggles pause).
+                if success:
+                    import time
+                    time.sleep(1.5)
             finally:
                 with self._command_lock:
                     self._executing_voice_command = False
@@ -3638,22 +3758,29 @@ class VoiceControlApp(ctk.CTk):
         inner = ctk.CTkFrame(self.now_playing_frame, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=12, pady=10)
         
-        # Title
-        ctk.CTkLabel(inner, text="Now Playing", font=ctk.CTkFont(size=11), 
-                     text_color="gray").pack(anchor="w")
+        # Title row with Spotify attribution
+        title_row = ctk.CTkFrame(inner, fg_color="transparent")
+        title_row.pack(fill="x", anchor="w")
+        ctk.CTkLabel(title_row, text="Now Playing", font=ctk.CTkFont(size=11), 
+                     text_color="gray").pack(side="left")
+        ctk.CTkLabel(title_row, text="· Spotify", font=ctk.CTkFont(size=11), 
+                     text_color="#1DB954").pack(side="left", padx=(3, 0))
         
-        # Album art placeholder
+        # Album art placeholder (clickable)
         self.album_art_label = ctk.CTkLabel(inner, text="🎵", font=ctk.CTkFont(size=40),
-                                             width=80, height=80)
+                                             width=80, height=80, cursor="hand2")
         self.album_art_label.pack(pady=(5, 5))
+        self.album_art_label.bind("<Button-1>", lambda e: self._open_spotify_track())
         self._current_album_art = None
+        self._current_track_url = None
         
-        # Track name
+        # Track name (clickable)
         self.np_track_var = ctk.StringVar(value="Not playing")
         self.np_track_label = ctk.CTkLabel(inner, textvariable=self.np_track_var, 
                                             font=ctk.CTkFont(size=12, weight="bold"),
-                                            wraplength=170)
+                                            wraplength=170, cursor="hand2")
         self.np_track_label.pack(anchor="w")
+        self.np_track_label.bind("<Button-1>", lambda e: self._open_spotify_track())
         
         # Artist
         self.np_artist_var = ctk.StringVar(value="")
@@ -3700,26 +3827,38 @@ class VoiceControlApp(ctk.CTk):
                     status = "▶" if track["is_playing"] else "⏸"
                     self.np_time_var.set(f"{status} -{remaining}")
                     
+                    # Store track URL for link-back
+                    self._current_track_url = track.get("track_url", "")
+                    
                     # Update album art
                     self._load_album_art(track.get("album_art_url"))
                 else:
-                    self._reset_now_playing()
+                    self._reset_now_playing(connected=True)
             except Exception:
-                self._reset_now_playing()
+                self._reset_now_playing(connected=True)
         else:
-            self._reset_now_playing()
+            self._reset_now_playing(connected=False)
         
         # Update every 2 seconds
         self.after(2000, self._update_now_playing)
     
-    def _reset_now_playing(self) -> None:
+    def _reset_now_playing(self, connected: bool = False) -> None:
         """Reset Now Playing to default state."""
         self.np_track_var.set("Not playing")
-        self.np_artist_var.set("Connect to Spotify in Settings")
+        if connected:
+            self.np_artist_var.set("🟢 Connected")
+        else:
+            self.np_artist_var.set("🔴 Not connected")
         self.np_progress.set(0)
         self.np_time_var.set("")
         self.album_art_label.configure(image=None, text="🎵")
         self._current_album_art = None
+        self._current_track_url = None
+    
+    def _open_spotify_track(self) -> None:
+        """Open the current track in Spotify."""
+        if self._current_track_url:
+            webbrowser.open(self._current_track_url)
     
     def _load_album_art(self, url: str) -> None:
         """Load album art from URL in background."""

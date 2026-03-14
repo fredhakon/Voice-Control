@@ -25,6 +25,8 @@ a = Analysis(
         ('icon.ico', '.'),
         ('config.default.json', '.'),  # Use clean default config, not user's personal config
         ('vosk-model', 'vosk-model'),  # Vosk offline speech recognition model
+        ('EULA.md', '.'),
+        ('PRIVACY.md', '.'),
     ],
     hiddenimports=[
         'pycaw',
